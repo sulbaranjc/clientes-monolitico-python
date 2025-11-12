@@ -18,7 +18,7 @@ class Cliente(BaseModel):
 clientes_db = [
     Cliente(
         id=1,
-        nombre="Juan",
+        nombre="Juan Carlos",
         apellido="Pérez",
         email="juan.perez@example.com",
         telefono="555-0101",
