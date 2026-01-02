@@ -41,3 +41,35 @@ def fetch_all_clientes() -> List[Dict[str, Any]]:
     finally:
         if conn:
             conn.close()
+
+
+def insert_cliente(
+    nombre: str, 
+    apellido: str, 
+    email: str, 
+    telefono: str | None = None, 
+    direccion: str | None = None
+) -> int:
+    """
+    Inserta un nuevo cliente en la base de datos.
+    Retorna el ID del cliente insertado.
+    """
+    conn = None
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        try:
+            cur.execute(
+                """
+                INSERT INTO clientes (nombre, apellido, email, telefono, direccion)
+                VALUES (%s, %s, %s, %s, %s)
+                """,
+                (nombre, apellido, email, telefono, direccion)
+            )
+            conn.commit()
+            return cur.lastrowid
+        finally:
+            cur.close()
+    finally:
+        if conn:
+            conn.close()

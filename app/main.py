@@ -1,12 +1,12 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Request, Form
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 
-# Importamos la función que consulta MySQL
-from app.database import fetch_all_clientes
+# Importamos las funciones que consultan/insertan en MySQL
+from app.database import fetch_all_clientes, insert_cliente
 
 
 # Modelo Pydantic para Cliente
@@ -63,3 +63,31 @@ def get_index(request: Request):
             "clientes": clientes
         }
     )
+
+
+# --- GET formulario nuevo cliente ---
+@app.get("/clientes/nuevo", response_class=HTMLResponse)
+def get_nuevo_cliente(request: Request):
+    return templates.TemplateResponse(
+        "pages/nuevo_cliente.html",
+        {
+            "request": request,
+            "mensaje": None
+        }
+    )
+
+
+# --- POST guardar nuevo cliente ---
+@app.post("/clientes/nuevo")
+def post_nuevo_cliente(
+    nombre: str = Form(...),
+    apellido: str = Form(...),
+    email: str = Form(...),
+    telefono: Optional[str] = Form(None),
+    direccion: Optional[str] = Form(None)
+):
+    # Insertamos el cliente en la base de datos
+    insert_cliente(nombre, apellido, email, telefono, direccion)
+    
+    # Redirigimos al inicio para ver el listado actualizado
+    return RedirectResponse(url="/", status_code=303)
