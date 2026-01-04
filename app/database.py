@@ -73,3 +73,26 @@ def insert_cliente(
     finally:
         if conn:
             conn.close()
+
+
+def delete_cliente(cliente_id: int) -> bool:
+    """
+    Elimina un cliente de la base de datos por su ID.
+    Retorna True si se eliminó correctamente, False si no se encontró.
+    """
+    conn = None
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        try:
+            cur.execute(
+                "DELETE FROM clientes WHERE id = %s",
+                (cliente_id,)
+            )
+            conn.commit()
+            return cur.rowcount > 0
+        finally:
+            cur.close()
+    finally:
+        if conn:
+            conn.close()

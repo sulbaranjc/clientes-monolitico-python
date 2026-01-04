@@ -1,12 +1,12 @@
-from fastapi import FastAPI, Request, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import FastAPI, Request, Form, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 
-# Importamos las funciones que consultan/insertan en MySQL
-from app.database import fetch_all_clientes, insert_cliente
+# Importamos las funciones que consultan/insertan/eliminan en MySQL
+from app.database import fetch_all_clientes, insert_cliente, delete_cliente
 
 
 # Modelo Pydantic para Cliente
@@ -91,3 +91,20 @@ def post_nuevo_cliente(
     
     # Redirigimos al inicio para ver el listado actualizado
     return RedirectResponse(url="/", status_code=303)
+
+
+# --- DELETE eliminar cliente ---
+@app.delete("/clientes/{cliente_id}")
+def delete_cliente_endpoint(cliente_id: int):
+    """
+    Endpoint para eliminar un cliente por su ID.
+    """
+    eliminado = delete_cliente(cliente_id)
+    
+    if not eliminado:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    
+    return JSONResponse(
+        content={"mensaje": "Cliente eliminado exitosamente"},
+        status_code=200
+    )
