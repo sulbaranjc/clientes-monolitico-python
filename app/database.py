@@ -67,7 +67,7 @@ def insert_cliente(
                 (nombre, apellido, email, telefono, direccion)
             )
             conn.commit()
-            return cur.lastrowid
+            return cur.lastrowid or 0
         finally:
             cur.close()
     finally:
