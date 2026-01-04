@@ -6,7 +6,14 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 
 # Importamos las funciones que consultan/insertan/eliminan en MySQL
-from app.database import fetch_all_clientes, insert_cliente, delete_cliente
+from app.database import (
+    fetch_all_clientes, 
+    insert_cliente, 
+    delete_cliente,
+    fetch_cliente_by_id,
+    update_cliente
+)
+
 
 
 # Modelo Pydantic para Cliente
@@ -108,3 +115,50 @@ def delete_cliente_endpoint(cliente_id: int):
         content={"mensaje": "Cliente eliminado exitosamente"},
         status_code=200
     )
+
+
+# --- GET formulario editar cliente ---
+@app.get("/clientes/editar/{cliente_id}", response_class=HTMLResponse)
+def get_editar_cliente(request: Request, cliente_id: int):
+    """
+    Endpoint para mostrar el formulario de edición con datos precargados.
+    """
+    # Obtenemos los datos del cliente
+    cliente_data = fetch_cliente_by_id(cliente_id)
+    
+    if not cliente_data:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    
+    # Convertimos a modelo Cliente para validación
+    cliente = Cliente(**cliente_data)
+    
+    return templates.TemplateResponse(
+        "pages/editar_cliente.html",
+        {
+            "request": request,
+            "cliente": cliente
+        }
+    )
+
+
+# --- POST actualizar cliente ---
+@app.post("/clientes/editar/{cliente_id}")
+def post_editar_cliente(
+    cliente_id: int,
+    nombre: str = Form(...),
+    apellido: str = Form(...),
+    email: str = Form(...),
+    telefono: Optional[str] = Form(None),
+    direccion: Optional[str] = Form(None)
+):
+    """
+    Endpoint para actualizar los datos de un cliente.
+    """
+    # Actualizamos el cliente en la base de datos
+    actualizado = update_cliente(cliente_id, nombre, apellido, email, telefono, direccion)
+    
+    if not actualizado:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    
+    # Redirigimos al inicio para ver el listado actualizado
+    return RedirectResponse(url="/", status_code=303)
