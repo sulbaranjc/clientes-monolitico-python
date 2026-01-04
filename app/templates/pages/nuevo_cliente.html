@@ -104,6 +104,18 @@
                 </div>
                 {% endif %}
                 
+                {% if errores %}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                  <h6 class="alert-heading"><i class="bi bi-exclamation-triangle-fill me-2"></i>Errores de validación:</h6>
+                  <ul class="mb-0">
+                    {% for error in errores %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                  </ul>
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endif %}
+                
                 <form method="POST" action="/clientes/nuevo">
                   <div class="mb-3">
                     <label for="nombre" class="form-label">
@@ -115,6 +127,7 @@
                       id="nombre"
                       name="nombre"
                       required
+                      value="{{ nombre or '' }}"
                       placeholder="Ingrese el nombre"
                     />
                   </div>
@@ -129,6 +142,7 @@
                       id="apellido"
                       name="apellido"
                       required
+                      value="{{ apellido or '' }}"
                       placeholder="Ingrese el apellido"
                     />
                   </div>
@@ -143,6 +157,7 @@
                       id="email"
                       name="email"
                       required
+                      value="{{ email or '' }}"
                       placeholder="ejemplo@correo.com"
                     />
                   </div>
@@ -156,6 +171,7 @@
                       class="form-control"
                       id="telefono"
                       name="telefono"
+                      value="{{ telefono or '' }}"
                       placeholder="Ingrese el teléfono"
                     />
                   </div>
@@ -170,7 +186,7 @@
                       name="direccion"
                       rows="3"
                       placeholder="Ingrese la dirección"
-                    ></textarea>
+                    >{{ direccion or '' }}</textarea>
                   </div>
                   
                   <div class="d-grid gap-2">
