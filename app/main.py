@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import Response
 from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List
 import re
@@ -114,6 +115,16 @@ def ping():
     Endpoint de health check para verificar que la API está funcionando.
     """
     return {"message": "pong"}
+
+
+# --- Endpoint para favicon (evita 404 en navegadores) ---
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """
+    Endpoint para manejar peticiones de favicon del navegador.
+    Retorna 204 (sin contenido) para evitar logs de error.
+    """
+    return Response(status_code=204)
 
 
 # --- Endpoint para listar todos los clientes ---
