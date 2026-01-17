@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, List
 import re
 
@@ -16,11 +16,36 @@ from app.database import (
 
 # Modelo base con validaciones comunes
 class ClienteBase(BaseModel):
-    nombre: str
-    apellido: str
-    email: EmailStr
-    telefono: Optional[str] = None
-    direccion: Optional[str] = None
+    nombre: str = Field(
+        ...,
+        min_length=2,
+        max_length=50,
+        description="Nombre del cliente. Solo letras, espacios y caracteres del español",
+        examples=["Juan", "María José"]
+    )
+    apellido: str = Field(
+        ...,
+        min_length=2,
+        max_length=50,
+        description="Apellido del cliente. Solo letras, espacios y caracteres del español",
+        examples=["Pérez", "García López"]
+    )
+    email: EmailStr = Field(
+        ...,
+        description="Email del cliente en formato válido",
+        examples=["juan.perez@example.com"]
+    )
+    telefono: Optional[str] = Field(
+        None,
+        description="Teléfono del cliente. Formato: 7-15 dígitos, puede incluir + al inicio",
+        examples=["+34612345678", "612345678", "91 234 56 78"]
+    )
+    direccion: Optional[str] = Field(
+        None,
+        max_length=200,
+        description="Dirección del cliente. Máximo 200 caracteres",
+        examples=["Calle Mayor 123, Madrid", "Av. Principal 45, 2º A"]
+    )
     
     @field_validator('nombre', 'apellido')
     @classmethod
