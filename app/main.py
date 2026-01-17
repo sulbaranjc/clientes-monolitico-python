@@ -126,6 +126,20 @@ def listar_clientes():
     return [ClienteDB(**row) for row in rows]
 
 
+# --- Endpoint para obtener un cliente por ID ---
+@app.get("/clientes/{cliente_id}", response_model=ClienteDB)
+def obtener_cliente(cliente_id: int):
+    """
+    Obtiene un cliente específico por su ID.
+    """
+    cliente = fetch_cliente_by_id(cliente_id)
+    
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    
+    return ClienteDB(**cliente)
+
+
 # --- Endpoint para crear un nuevo cliente ---
 @app.post("/clientes", response_model=ClienteDB, status_code=201)
 def crear_cliente(cliente: ClienteCreate):
