@@ -76,16 +76,6 @@ class ClienteBase(BaseModel):
         return v
 
 
-# Modelo para lectura de BD (sin validaciones estrictas, acepta datos históricos)
-class ClienteDB(BaseModel):
-    id: int
-    nombre: str
-    apellido: str
-    email: str
-    telefono: Optional[str] = None
-    direccion: Optional[str] = None
-
-
 # Modelo para crear cliente (sin ID)
 class ClienteCreate(ClienteBase):
     pass
@@ -128,17 +118,17 @@ async def favicon():
 
 
 # --- Endpoint para listar todos los clientes ---
-@app.get("/clientes", response_model=List[ClienteDB])
+@app.get("/clientes", response_model=List[Cliente])
 def listar_clientes():
     """
     Obtiene la lista completa de clientes desde la base de datos.
     """
     rows = fetch_all_clientes()
-    return [ClienteDB(**row) for row in rows]
+    return [Cliente(**row) for row in rows]
 
 
 # --- Endpoint para obtener un cliente por ID ---
-@app.get("/clientes/{cliente_id}", response_model=ClienteDB)
+@app.get("/clientes/{cliente_id}", response_model=Cliente)
 def obtener_cliente(cliente_id: int):
     """
     Obtiene un cliente específico por su ID.
@@ -148,11 +138,11 @@ def obtener_cliente(cliente_id: int):
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     
-    return ClienteDB(**cliente)
+    return Cliente(**cliente)
 
 
 # --- Endpoint para crear un nuevo cliente ---
-@app.post("/clientes", response_model=ClienteDB, status_code=201)
+@app.post("/clientes", response_model=Cliente, status_code=201)
 def crear_cliente(cliente: ClienteCreate):
     """
     Crea un nuevo cliente en la base de datos.
@@ -166,7 +156,7 @@ def crear_cliente(cliente: ClienteCreate):
         cliente.direccion
     )
     
-    return ClienteDB(
+    return Cliente(
         id=cliente_id,
         nombre=cliente.nombre,
         apellido=cliente.apellido,
@@ -177,7 +167,7 @@ def crear_cliente(cliente: ClienteCreate):
 
 
 # --- Endpoint para actualizar un cliente ---
-@app.put("/clientes/{cliente_id}", response_model=ClienteDB)
+@app.put("/clientes/{cliente_id}", response_model=Cliente)
 def actualizar_cliente(cliente_id: int, cliente: ClienteUpdate):
     """
     Actualiza los datos de un cliente existente.
@@ -195,7 +185,7 @@ def actualizar_cliente(cliente_id: int, cliente: ClienteUpdate):
     if not actualizado:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     
-    return ClienteDB(
+    return Cliente(
         id=cliente_id,
         nombre=cliente.nombre,
         apellido=cliente.apellido,
