@@ -118,8 +118,12 @@ class Cliente(ClienteBase):
 
 app = FastAPI(
     title="Clientes API REST",
-    description="API REST para gestión de clientes con MySQL",
-    version="1.0.0"
+    description="API REST para gestión de clientes con MySQL | Desarrollado por Ing. Juan Carlos Sulbaran",
+    version="1.0.0",
+    contact={
+        "name": "Ing. Juan Carlos Sulbaran",
+        "email": "jsulbaran@ilerna.com"
+    }
 )
 
 
