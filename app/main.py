@@ -1,12 +1,7 @@
-from fastapi import FastAPI, Request, Form, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
-from pydantic import BaseModel, EmailStr, field_validator, ValidationError
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import Response
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, List
-import mysql.connector
 import re
 
 # Importamos las funciones que consultan/insertan/eliminan en MySQL
@@ -21,11 +16,36 @@ from app.database import (
 
 # Modelo base con validaciones comunes
 class ClienteBase(BaseModel):
-    nombre: str
-    apellido: str
-    email: EmailStr
-    telefono: Optional[str] = None
-    direccion: Optional[str] = None
+    nombre: str = Field(
+        ...,
+        min_length=2,
+        max_length=50,
+        description="Nombre del cliente. Solo letras, espacios y caracteres del español",
+        examples=["Juan", "María José"]
+    )
+    apellido: str = Field(
+        ...,
+        min_length=2,
+        max_length=50,
+        description="Apellido del cliente. Solo letras, espacios y caracteres del español",
+        examples=["Pérez", "García López"]
+    )
+    email: EmailStr = Field(
+        ...,
+        description="Email del cliente en formato válido",
+        examples=["juan.perez@example.com"]
+    )
+    telefono: Optional[str] = Field(
+        None,
+        description="Teléfono del cliente. Formato: 7-15 dígitos, puede incluir + al inicio",
+        examples=["+34612345678", "612345678", "91 234 56 78"]
+    )
+    direccion: Optional[str] = Field(
+        None,
+        max_length=200,
+        description="Dirección del cliente. Máximo 200 caracteres",
+        examples=["Calle Mayor 123, Madrid", "Av. Principal 45, 2º A"]
+    )
     
     @field_validator('nombre', 'apellido')
     @classmethod
@@ -81,16 +101,6 @@ class ClienteBase(BaseModel):
         return v
 
 
-# Modelo para lectura de BD (sin validaciones estrictas, acepta datos históricos)
-class ClienteDB(BaseModel):
-    id: int
-    nombre: str
-    apellido: str
-    email: str
-    telefono: Optional[str] = None
-    direccion: Optional[str] = None
-
-
 # Modelo para crear cliente (sin ID)
 class ClienteCreate(ClienteBase):
     pass
@@ -106,284 +116,123 @@ class Cliente(ClienteBase):
     id: int
 
 
-app = FastAPI(title="Monolito Clientes con FastAPI y MySQL")
+app = FastAPI(
+    title="Clientes API REST",
+    description="API REST para gestión de clientes con MySQL | Desarrollado por Ing. Juan Carlos Sulbaran",
+    version="1.0.0",
+    contact={
+        "name": "Ing. Juan Carlos Sulbaran",
+        "email": "jsulbaran@ilerna.com"
+    }
+)
 
-# Servir archivos estáticos
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-# Motor de plantillas
-templates = Jinja2Templates(directory="app/templates")
-
-
-# --- Manejador de errores 404 ---
-@app.exception_handler(StarletteHTTPException)
-async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException):
+# --- Endpoint de health check ---
+@app.get("/ping")
+def ping():
     """
-    Manejador personalizado para errores HTTP.
-    Muestra una página de error personalizada para errores 404.
+    Endpoint de health check para verificar que la API está funcionando.
     """
-    if exc.status_code == 404:
-        return templates.TemplateResponse(
-            "pages/error_404.html",
-            {
-                "request": request
-            },
-            status_code=404
-        )
-    # Para otros errores HTTP, retornar respuesta JSON
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": exc.detail}
-    )
+    return {"message": "pong"}
 
 
-# --- Manejador de errores de base de datos ---
-@app.exception_handler(mysql.connector.Error)
-async def database_exception_handler(request: Request, exc: mysql.connector.Error):
+# --- Endpoint para favicon (evita 404 en navegadores) ---
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
     """
-    Manejador personalizado para errores de MySQL.
-    Muestra una página de error 500 cuando hay problemas de conexión.
+    Endpoint para manejar peticiones de favicon del navegador.
+    Retorna 204 (sin contenido) para evitar logs de error.
     """
-    return templates.TemplateResponse(
-        "pages/error_500.html",
-        {
-            "request": request
-        },
-        status_code=500
-    )
+    return Response(status_code=204)
 
 
-# --- Manejador de errores generales del servidor ---
-@app.exception_handler(Exception)
-async def general_exception_handler(request: Request, exc: Exception):
+# --- Endpoint para listar todos los clientes ---
+@app.get("/clientes", response_model=List[Cliente])
+def listar_clientes():
     """
-    Manejador personalizado para excepciones no controladas.
-    Muestra una página de error 500 genérica.
+    Obtiene la lista completa de clientes desde la base de datos.
     """
-    # Log del error para debugging (opcional)
-    print(f"Error no controlado: {type(exc).__name__}: {str(exc)}")
-    
-    return templates.TemplateResponse(
-        "pages/error_500.html",
-        {
-            "request": request
-        },
-        status_code=500
-    )
-
-
-def map_rows_to_clientes(rows: List[dict]) -> List[ClienteDB]:
-    """
-    Convierte las filas del SELECT * FROM clientes (dict) 
-    en objetos ClienteDB (sin validaciones estrictas para datos existentes).
-    """
-    return [
-        ClienteDB(
-            id=row["id"],
-            nombre=row["nombre"],
-            apellido=row["apellido"],
-            email=row["email"],
-            telefono=row.get("telefono"),
-            direccion=row.get("direccion"),
-        )
-        for row in rows
-    ]
-
-
-# --- GET principal ---
-@app.get("/", response_class=HTMLResponse)
-def get_index(request: Request):
-    # 1️⃣ Obtenemos los datos desde MySQL
     rows = fetch_all_clientes()
-
-    # 2️⃣ Convertimos cada fila a Cliente (valida estructura)
-    clientes = map_rows_to_clientes(rows)
-
-    # 3️⃣ Enviamos a la plantilla
-    return templates.TemplateResponse(
-        "pages/index.html",
-        {
-            "request": request,
-            "clientes": clientes
-        }
-    )
+    return [Cliente(**row) for row in rows]
 
 
-# --- GET formulario nuevo cliente ---
-@app.get("/clientes/nuevo", response_class=HTMLResponse)
-def get_nuevo_cliente(request: Request):
-    return templates.TemplateResponse(
-        "pages/nuevo_cliente.html",
-        {
-            "request": request,
-            "mensaje": None
-        }
-    )
-
-
-# --- POST guardar nuevo cliente ---
-@app.post("/clientes/nuevo")
-def post_nuevo_cliente(
-    request: Request,
-    nombre: str = Form(...),
-    apellido: str = Form(...),
-    email: str = Form(...),
-    telefono: Optional[str] = Form(None),
-    direccion: Optional[str] = Form(None)
-):
-    try:
-        # Validamos los datos usando Pydantic
-        cliente_data = ClienteCreate(
-            nombre=nombre,
-            apellido=apellido,
-            email=email,
-            telefono=telefono if telefono else None,
-            direccion=direccion if direccion else None
-        )
-        
-        # Insertamos el cliente en la base de datos
-        insert_cliente(
-            cliente_data.nombre,
-            cliente_data.apellido,
-            cliente_data.email,
-            cliente_data.telefono,
-            cliente_data.direccion
-        )
-        
-        # Redirigimos al inicio para ver el listado actualizado
-        return RedirectResponse(url="/", status_code=303)
-        
-    except ValidationError as e:
-        # Extraemos los errores de validación
-        errores = []
-        for error in e.errors():
-            campo = str(error['loc'][0]) if error['loc'] else 'campo'
-            mensaje = error['msg']
-            errores.append(f"{campo.capitalize()}: {mensaje}")
-        
-        # Mostramos el formulario con los errores
-        return templates.TemplateResponse(
-            "pages/nuevo_cliente.html",
-            {
-                "request": request,
-                "mensaje": None,
-                "errores": errores,
-                "nombre": nombre,
-                "apellido": apellido,
-                "email": email,
-                "telefono": telefono,
-                "direccion": direccion
-            },
-            status_code=422
-        )
-
-
-# --- DELETE eliminar cliente ---
-@app.delete("/clientes/{cliente_id}")
-def delete_cliente_endpoint(cliente_id: int):
+# --- Endpoint para obtener un cliente por ID ---
+@app.get("/clientes/{cliente_id}", response_model=Cliente)
+def obtener_cliente(cliente_id: int):
     """
-    Endpoint para eliminar un cliente por su ID.
+    Obtiene un cliente específico por su ID.
+    """
+    cliente = fetch_cliente_by_id(cliente_id)
+    
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    
+    return Cliente(**cliente)
+
+
+# --- Endpoint para crear un nuevo cliente ---
+@app.post("/clientes", response_model=Cliente, status_code=201)
+def crear_cliente(cliente: ClienteCreate):
+    """
+    Crea un nuevo cliente en la base de datos.
+    Los datos son validados automáticamente por Pydantic.
+    """
+    cliente_id = insert_cliente(
+        cliente.nombre,
+        cliente.apellido,
+        cliente.email,
+        cliente.telefono,
+        cliente.direccion
+    )
+    
+    return Cliente(
+        id=cliente_id,
+        nombre=cliente.nombre,
+        apellido=cliente.apellido,
+        email=cliente.email,
+        telefono=cliente.telefono,
+        direccion=cliente.direccion
+    )
+
+
+# --- Endpoint para actualizar un cliente ---
+@app.put("/clientes/{cliente_id}", response_model=Cliente)
+def actualizar_cliente(cliente_id: int, cliente: ClienteUpdate):
+    """
+    Actualiza los datos de un cliente existente.
+    Los datos son validados automáticamente por Pydantic.
+    """
+    actualizado = update_cliente(
+        cliente_id,
+        cliente.nombre,
+        cliente.apellido,
+        cliente.email,
+        cliente.telefono,
+        cliente.direccion
+    )
+    
+    if not actualizado:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    
+    return Cliente(
+        id=cliente_id,
+        nombre=cliente.nombre,
+        apellido=cliente.apellido,
+        email=cliente.email,
+        telefono=cliente.telefono,
+        direccion=cliente.direccion
+    )
+
+
+# --- Endpoint para eliminar un cliente ---
+@app.delete("/clientes/{cliente_id}", status_code=204)
+def eliminar_cliente(cliente_id: int):
+    """
+    Elimina un cliente de la base de datos por su ID.
     """
     eliminado = delete_cliente(cliente_id)
     
     if not eliminado:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     
-    return JSONResponse(
-        content={"mensaje": "Cliente eliminado exitosamente"},
-        status_code=200
-    )
-
-
-# --- GET formulario editar cliente ---
-@app.get("/clientes/editar/{cliente_id}", response_class=HTMLResponse)
-def get_editar_cliente(request: Request, cliente_id: int):
-    """
-    Endpoint para mostrar el formulario de edición con datos precargados.
-    """
-    # Obtenemos los datos del cliente
-    cliente_data = fetch_cliente_by_id(cliente_id)
-    
-    if not cliente_data:
-        raise HTTPException(status_code=404, detail="Cliente no encontrado")
-    
-    # Convertimos a modelo ClienteDB para mostrar en formulario (sin validaciones)
-    cliente = ClienteDB(**cliente_data)
-    
-    return templates.TemplateResponse(
-        "pages/editar_cliente.html",
-        {
-            "request": request,
-            "cliente": cliente
-        }
-    )
-
-
-# --- POST actualizar cliente ---
-@app.post("/clientes/editar/{cliente_id}")
-def post_editar_cliente(
-    request: Request,
-    cliente_id: int,
-    nombre: str = Form(...),
-    apellido: str = Form(...),
-    email: str = Form(...),
-    telefono: Optional[str] = Form(None),
-    direccion: Optional[str] = Form(None)
-):
-    """
-    Endpoint para actualizar los datos de un cliente.
-    """
-    try:
-        # Validamos los datos usando Pydantic
-        cliente_data = ClienteUpdate(
-            nombre=nombre,
-            apellido=apellido,
-            email=email,
-            telefono=telefono if telefono else None,
-            direccion=direccion if direccion else None
-        )
-        
-        # Actualizamos el cliente en la base de datos
-        actualizado = update_cliente(
-            cliente_id,
-            cliente_data.nombre,
-            cliente_data.apellido,
-            cliente_data.email,
-            cliente_data.telefono,
-            cliente_data.direccion
-        )
-        
-        if not actualizado:
-            raise HTTPException(status_code=404, detail="Cliente no encontrado")
-        
-        # Redirigimos al inicio para ver el listado actualizado
-        return RedirectResponse(url="/", status_code=303)
-        
-    except ValidationError as e:
-        # Extraemos los errores de validación
-        errores = []
-        for error in e.errors():
-            campo = str(error['loc'][0]) if error['loc'] else 'campo'
-            mensaje = error['msg']
-            errores.append(f"{campo.capitalize()}: {mensaje}")
-        
-        # Creamos un objeto cliente temporal para mostrar en el formulario
-        cliente_temp = ClienteDB(
-            id=cliente_id,
-            nombre=nombre,
-            apellido=apellido,
-            email=email,
-            telefono=telefono,
-            direccion=direccion
-        )
-        
-        # Mostramos el formulario con los errores
-        return templates.TemplateResponse(
-            "pages/editar_cliente.html",
-            {
-                "request": request,
-                "cliente": cliente_temp,
-                "errores": errores
-            },
-            status_code=422
-        )
+    return None
