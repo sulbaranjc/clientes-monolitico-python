@@ -6,9 +6,10 @@
 # Automatiza el proceso de commit, push y merge a rama deploy
 #
 # USO:
-#   ./deploy-automation.sh                    # Detecta rama actual
-#   ./deploy-automation.sh main               # Especifica rama origen
-#   ./deploy-automation.sh feature/nueva-ui   # Desde feature branch
+#   deploy-automation.sh                                     # Detecta rama actual
+#   deploy-automation.sh main                                # Especifica rama origen
+#   deploy-automation.sh feature/nueva-ui                    # Desde feature branch
+#   deploy-automation.sh /path/to/proyecto main              # Con ruta del proyecto
 #
 # PROCESO:
 #   1. Commit de todos los cambios en rama actual
@@ -20,8 +21,28 @@
 # REQUISITOS:
 #   - Git configurado
 #   - Permisos de push al repositorio
-#   - Estar dentro de un repositorio Git
+#   - Estar dentro de un repositorio Git (o especificar ruta)
 # ====================================================================
+
+# Detección automática de ruta del proyecto
+# Si se pasa como parámetro 1, usar ese; si no, detectar directorio actual
+if [[ "$1" == /* ]] || [[ "$1" == ./* ]]; then
+    # Si el primer parámetro es una ruta absoluta o relativa
+    PROJECT_DIR="$1"
+    shift  # Quitar el primer parámetro
+else
+    # Si no se pasa ruta, usar el directorio actual
+    PROJECT_DIR="."
+fi
+
+# Validar que el directorio existe
+if [ ! -d "$PROJECT_DIR" ]; then
+    echo -e "\033[0;31m❌ ERROR: El directorio '$PROJECT_DIR' no existe\033[0m" >&2
+    exit 1
+fi
+
+# Cambiar al directorio del proyecto
+cd "$PROJECT_DIR" || exit 1
 
 # --------------------------------------------------------------------
 # CONFIGURACIÓN DE COLORES PARA OUTPUT
