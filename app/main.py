@@ -2,8 +2,11 @@ from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from pydantic import BaseModel, EmailStr, field_validator, ValidationError
 from typing import Optional, List
+import mysql.connector
 import re
 
 # Importamos las funciones que consultan/insertan/eliminan en MySQL
@@ -103,13 +106,70 @@ class Cliente(ClienteBase):
     id: int
 
 
-app = FastAPI(title="SumaAPI")
+app = FastAPI(title="Monolito Clientes con FastAPI y MySQL")
 
 # Servir archivos estáticos
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Motor de plantillas
 templates = Jinja2Templates(directory="app/templates")
+
+
+# --- Manejador de errores 404 ---
+@app.exception_handler(StarletteHTTPException)
+async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException):
+    """
+    Manejador personalizado para errores HTTP.
+    Muestra una página de error personalizada para errores 404.
+    """
+    if exc.status_code == 404:
+        return templates.TemplateResponse(
+            "pages/error_404.html",
+            {
+                "request": request
+            },
+            status_code=404
+        )
+    # Para otros errores HTTP, retornar respuesta JSON
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
+    )
+
+
+# --- Manejador de errores de base de datos ---
+@app.exception_handler(mysql.connector.Error)
+async def database_exception_handler(request: Request, exc: mysql.connector.Error):
+    """
+    Manejador personalizado para errores de MySQL.
+    Muestra una página de error 500 cuando hay problemas de conexión.
+    """
+    return templates.TemplateResponse(
+        "pages/error_500.html",
+        {
+            "request": request
+        },
+        status_code=500
+    )
+
+
+# --- Manejador de errores generales del servidor ---
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    """
+    Manejador personalizado para excepciones no controladas.
+    Muestra una página de error 500 genérica.
+    """
+    # Log del error para debugging (opcional)
+    print(f"Error no controlado: {type(exc).__name__}: {str(exc)}")
+    
+    return templates.TemplateResponse(
+        "pages/error_500.html",
+        {
+            "request": request
+        },
+        status_code=500
+    )
 
 
 def map_rows_to_clientes(rows: List[dict]) -> List[ClienteDB]:
