@@ -1,3 +1,0 @@
-#!/bin/bash
-# Wrapper para ejecutar deploy-automation desde .ssh
-/home/sulbaranjc/.ssh/deploy-automation "$@"
