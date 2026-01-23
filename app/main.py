@@ -106,7 +106,7 @@ class Cliente(ClienteBase):
     id: int
 
 
-app = FastAPI(title="SumaAPI")
+app = FastAPI(title="Monolito Clientes con FastAPI y MySQL")
 
 # Servir archivos estáticos
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
