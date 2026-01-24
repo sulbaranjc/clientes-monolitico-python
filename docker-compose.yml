@@ -1,43 +1,55 @@
 services:
-  db:
-    image: mariadb:10.6
-    container_name: clientes-db
+  clientes-monolito:
+    image: clientes-app:latest
+    container_name: clientes-monolito
+    restart: always
+
+    command:
+      - uvicorn
+      - app.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+
+    expose:
+      - "8000"
+
     environment:
-      - MARIADB_DATABASE=clientes_db
-      - MARIADB_USER=profesor
-      - MARIADB_PASSWORD=4688
-      - MARIADB_ROOT_PASSWORD=root4688
+      DB_HOST: clientes-db
+      DB_NAME: clientes_db
+      DB_USER: clientes
+      DB_PASSWORD: clientes123
+      DB_PORT: "3306"
+
+      VIRTUAL_HOST: clientes.docker.sulbaranjc.com
+      VIRTUAL_PORT: "8000"
+
+    networks:
+      - backend
+      - nginx-proxy
+
+  clientes-db:
+    image: mariadb:10.6
+    restart: always
+
+    environment:
+      MYSQL_DATABASE: clientes_db
+      MYSQL_USER: clientes
+      MYSQL_PASSWORD: clientes123
+      MYSQL_ROOT_PASSWORD: root123
+
     volumes:
       - clientes_db_data:/var/lib/mysql
-      - ./docs/init_db.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+
     networks:
       - backend
-    restart: unless-stopped
-
-  app:
-    build: .
-    image: clientes-app:latest
-    container_name: clientes-app
-    environment:
-      - DB_HOST=db
-      - DB_USER=profesor
-      - DB_PASSWORD=4688
-      - DB_NAME=clientes_db
-      - DB_PORT=3306
-      - VIRTUAL_HOST=clientes.docker.sulbaranjc.com
-      - VIRTUAL_PORT=8000
-    depends_on:
-      - db
-    networks:
-      - backend
-      - proxy
-    restart: unless-stopped
-
-volumes:
-  clientes_db_data:
 
 networks:
   backend:
-  proxy:
+    name: clientes_backend
+  nginx-proxy:
     external: true
-    name: proxy
+
+volumes:
+  clientes_db_data:
