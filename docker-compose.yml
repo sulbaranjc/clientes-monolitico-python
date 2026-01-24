@@ -1,51 +1,65 @@
 services:
-  clientes-monolito:
+  clientes-monolitico:
     build:
       context: .
       dockerfile: Dockerfile
-    image: clientes-monolito:latest
+    image: clientes-monolitico:latest
     container_name: clientes-monolitico
-    restart: always
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    command:
+      - uvicorn
+      - app.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+
     environment:
-      DB_HOST: clientes-monolito-db
+      DB_HOST: clientes-monolitico-db
       DB_NAME: clientes_db
       DB_USER: clientes
       DB_PASSWORD: clientes123
       DB_PORT: "3306"
+
       VIRTUAL_HOST: clientes.docker.sulbaranjc.com
       VIRTUAL_PORT: "8000"
-    expose:
-      - "8000"
+
     depends_on:
-      - clientes-monolito-db
+      - clientes-monolitico-db
+
     networks:
       - backend
       - nginx-proxy
 
-  clientes-monolito-db:
-    image: mariadb:10.6
-    container_name: clientes-monolito-db
     restart: always
+
+
+  clientes-monolitico-db:
+    image: mariadb:10.6
+    container_name: clientes-monolitico-db
+
     environment:
       MYSQL_DATABASE: clientes_db
       MYSQL_USER: clientes
       MYSQL_PASSWORD: clientes123
       MYSQL_ROOT_PASSWORD: root123
+
     volumes:
-      - clientes_monolito_db_data:/var/lib/mysql
-      # ✅ Auto-init SOLO la primera vez (cuando el volumen está vacío)
-      - ./init_db.sql:/docker-entrypoint-initdb.d/01_init_db.sql:ro
+      - clientes_monolitico_db_data:/var/lib/mysql
+      - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:ro
+
     networks:
       - backend
 
+    restart: always
+
+
 networks:
   backend:
-    name: clientes_monolito_backend
+    name: clientes_monolitico_backend
+
   nginx-proxy:
     external: true
-    name: nginx-proxy
+
 
 volumes:
-  clientes_monolito_db_data:
-    name: clientes_monolito_db_data
+  clientes_monolitico_db_data:
