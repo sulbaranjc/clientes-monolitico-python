@@ -1,5 +1,5 @@
 services:
-  clientes-monolito:
+  app:
     image: clientes-app:latest
     container_name: clientes-monolito
     restart: always
@@ -47,7 +47,6 @@ services:
 
 networks:
   backend:
-    name: clientes_backend
   nginx-proxy:
     external: true
 
