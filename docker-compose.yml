@@ -5,7 +5,7 @@ services:
     restart: always
 
     environment:
-      DB_HOST: db
+      DB_HOST: clientes-db
       DB_NAME: clientes_db
       DB_USER: clientes
       DB_PASSWORD: clientes123
