@@ -3,15 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: clientes-monolitico:latest
     container_name: clientes-monolitico
-    command:
-      - uvicorn
-      - app.main:app
-      - --host
-      - 0.0.0.0
-      - --port
-      - "8000"
+    restart: always
 
     environment:
       DB_HOST: clientes-monolitico-db
@@ -23,6 +16,9 @@ services:
       VIRTUAL_HOST: clientes.docker.sulbaranjc.com
       VIRTUAL_PORT: "8000"
 
+    expose:
+      - "8000"
+
     depends_on:
       - clientes-monolitico-db
 
@@ -30,12 +26,10 @@ services:
       - backend
       - nginx-proxy
 
-    restart: always
-
-
   clientes-monolitico-db:
     image: mariadb:10.6
     container_name: clientes-monolitico-db
+    restart: always
 
     environment:
       MYSQL_DATABASE: clientes_db
@@ -50,16 +44,12 @@ services:
     networks:
       - backend
 
-    restart: always
-
-
 networks:
   backend:
     name: clientes_monolitico_backend
 
   nginx-proxy:
     external: true
-
 
 volumes:
   clientes_monolitico_db_data:
