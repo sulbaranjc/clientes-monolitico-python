@@ -3,17 +3,11 @@ services:
     build: .
     image: clientes-monolitico:latest
     container_name: clientes-monolitico
-    command:
-      - uvicorn
-      - app.main:app
-      - --host
-      - 0.0.0.0
-      - --port
-      - "8000"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
 
     environment:
-      DB_HOST: clientes-db
-      DB_NAME: clientes_db
+      DB_HOST: clientes-monolitico-db
+      DB_NAME: clientes_monolitico_db
       DB_USER: clientes
       DB_PASSWORD: clientes123
       DB_PORT: "3306"
@@ -22,7 +16,7 @@ services:
       VIRTUAL_PORT: "8000"
 
     depends_on:
-      - clientes-db
+      - clientes-monolitico-db
 
     networks:
       - backend
@@ -31,18 +25,18 @@ services:
     restart: always
 
 
-  clientes-db:
+  clientes-monolitico-db:
     image: mariadb:10.6
-    container_name: clientes-db
+    container_name: clientes-monolitico-db
 
     environment:
-      MYSQL_DATABASE: clientes_db
+      MYSQL_DATABASE: clientes_monolitico_db
       MYSQL_USER: clientes
       MYSQL_PASSWORD: clientes123
       MYSQL_ROOT_PASSWORD: root123
 
     volumes:
-      - clientes_db_data:/var/lib/mysql
+      - clientes_monolitico_db_data:/var/lib/mysql
       - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:ro
 
     networks:
@@ -60,4 +54,4 @@ networks:
 
 
 volumes:
-  clientes_db_data:
+  clientes_monolitico_db_data:
