@@ -5,7 +5,7 @@ services:
     restart: always
 
     environment:
-      DB_HOST: clientes-db
+      DB_HOST: clientes-db   # 👈 ESTE ES EL FIX
       DB_NAME: clientes_db
       DB_USER: clientes
       DB_PASSWORD: clientes123
@@ -23,29 +23,3 @@ services:
     networks:
       - nginx-proxy
       - internal
-
-  db:
-    image: mariadb:10.6
-    container_name: clientes-db
-    restart: always
-
-    environment:
-      MYSQL_ROOT_PASSWORD: root123
-      MYSQL_DATABASE: clientes_db
-      MYSQL_USER: clientes
-      MYSQL_PASSWORD: clientes123
-
-    volumes:
-      - db_data:/var/lib/mysql
-      - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:ro
-
-    networks:
-      - internal
-
-volumes:
-  db_data:
-
-networks:
-  internal:
-  nginx-proxy:
-    external: true
