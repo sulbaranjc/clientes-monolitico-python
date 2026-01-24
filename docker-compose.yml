@@ -1,58 +1,50 @@
+version: "3.8"
+
 services:
-  app:
-    image: clientes-app:latest
+  clientes-monolitico:
+    build: .
+    image: clientes-monolitico:latest
     container_name: clientes-monolitico
-    restart: always
-
-    command:
-      - uvicorn
-      - app.main:app
-      - --host
-      - 0.0.0.0
-      - --port
-      - "8000"
-
-    expose:
-      - "8000"
-
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8000
     environment:
-      DB_HOST: db
-      DB_NAME: clientes_db
-      DB_USER: clientes
-      DB_PASSWORD: clientes123
+      DB_HOST: clientes-monolitico-db
+      DB_NAME: clientes_monolitico_db
+      DB_USER: monolitico
+      DB_PASSWORD: monolitico123
       DB_PORT: "3306"
 
       VIRTUAL_HOST: clientes.docker.sulbaranjc.com
       VIRTUAL_PORT: "8000"
-
     depends_on:
-      - db
-
+      - clientes-monolitico-db
     networks:
       - backend
       - nginx-proxy
-
-  db:
-    image: mariadb:10.6
-    container_name: clientes-db
     restart: always
 
+  clientes-monolitico-db:
+    image: mariadb:10.6
+    container_name: clientes-monolitico-db
     environment:
-      MYSQL_DATABASE: clientes_db
-      MYSQL_USER: clientes
-      MYSQL_PASSWORD: clientes123
+      MYSQL_DATABASE: clientes_monolitico_db
+      MYSQL_USER: monolitico
+      MYSQL_PASSWORD: monolitico123
       MYSQL_ROOT_PASSWORD: root123
-
     volumes:
-      - clientes_db_data:/var/lib/mysql
-
+      - clientes_monolitico_db_data:/var/lib/mysql
+      - ./docs/init_db.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - backend
+    restart: always
 
 networks:
   backend:
+    name: clientes_monolitico_backend
   nginx-proxy:
     external: true
 
 volumes:
-  clientes_db_data:
+  clientes_monolitico_db_data:
