@@ -1,17 +1,55 @@
 services:
-  clientes-monolitico:
+  app:
     build: .
     container_name: clientes-monolitico
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    restart: always
+
     environment:
-      VIRTUAL_HOST: clientes-monolitico.docker.sulbaranjc.com
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: clientes_db
+      DB_USER: clientes
+      DB_PASSWORD: clientes123
+
+      VIRTUAL_HOST: monolito.docker.sulbaranjc.com
       VIRTUAL_PORT: "8000"
+
     expose:
       - "8000"
+
+    depends_on:
+      - db
+
     networks:
       - nginx-proxy
+      - internal
+
+
+  db:
+    image: mariadb:10.6
+    container_name: clientes-monolitico-db
     restart: always
+
+    environment:
+      MYSQL_DATABASE: clientes_db
+      MYSQL_USER: clientes
+      MYSQL_PASSWORD: clientes123
+      MYSQL_ROOT_PASSWORD: root123
+
+    volumes:
+      - clientes_monolitico_db:/var/lib/mysql
+      - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:ro
+
+    networks:
+      - internal
+
+
+volumes:
+  clientes_monolitico_db:
+
 
 networks:
   nginx-proxy:
     external: true
+  internal:
+    driver: bridge
