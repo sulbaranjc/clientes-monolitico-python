@@ -116,15 +116,15 @@ class Cliente(ClienteBase):
     id: int
 
 
-app = FastAPI(
-    title="Clientes API REST",
-    description="API REST para gestión de clientes con MySQL | Desarrollado por Ing. Juan Carlos Sulbaran",
-    version="1.0.0",
-    contact={
-        "name": "Ing. Juan Carlos Sulbaran",
-        "email": "jsulbaran@ilerna.com"
-    }
-)
+app = FastAPI(title="Monolito Clientes con FastAPI y MySQL", 
+              version="1.0", 
+              description="Una aplicación monolítica para gestionar clientes usando FastAPI y MySQL, con validaciones robustas y manejo de errores personalizado.")
+
+# Servir archivos estáticos
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+# Motor de plantillas
+templates = Jinja2Templates(directory="app/templates")
 
 
 # --- Endpoint de health check ---

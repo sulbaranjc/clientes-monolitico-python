@@ -1,0 +1,42 @@
+name: Deploy ValidacionDeFormularios
+
+on:
+  push:
+    branches:
+      - deploy
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy real en servidor Docker
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+
+            echo "📌 Entrando al proyecto"
+            cd ${{ secrets.DEPLOY_PATH }}
+
+            echo "📌 Limpiando repo (evita bloqueos por archivos sueltos)"
+            git reset --hard
+            git clean -fd
+
+            echo "📌 Sincronizando con origin/deploy"
+            git fetch origin
+            git checkout -B deploy origin/deploy
+            git pull --ff-only origin deploy
+
+            echo "📌 Rama activa:"
+            git branch --show-current
+
+            echo "📌 Commit desplegado:"
+            git log -1 --oneline
+
+            echo "🐳 Recreando contenedores Docker"
+            docker compose down
+            docker compose up -d --build
