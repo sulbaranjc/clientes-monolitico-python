@@ -185,6 +185,7 @@ docker compose up -d    # Recrea todo con datos frescos
 ### Opción 2: Detener contenedores (libera recursos)
 ```bash
 docker compose stop
+docker compose ps
 ```
 **Al día siguiente:**
 ```bash
