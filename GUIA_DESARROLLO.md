@@ -1,5 +1,29 @@
 # 🚀 Guía de Desarrollo - Clientes Monolítico Python
 
+## ⚠️ IMPORTANTE: Rama de Trabajo
+
+### ✅ **SIEMPRE trabajar en la rama `mysql`**
+
+Esta es la rama **principal y estable** del proyecto. Contiene:
+- ✅ Código completo y funcional
+- ✅ Última versión de producción
+- ✅ Configuración optimizada de Docker
+- ✅ Documentación actualizada
+
+```bash
+# SIEMPRE usa esta rama:
+git checkout mysql
+git pull origin mysql
+```
+
+### ❌ **NO usar otras ramas para desarrollo**
+
+- `main`: Versión antigua (API REST) - solo para referencia histórica
+- `deploy`: Solo para despliegue a producción
+- `api-rest`: Descontinuada - no usar
+
+---
+
 ## 📋 Requisitos Previos
 
 - Docker y Docker Compose instalados
@@ -16,9 +40,9 @@ git clone <URL_DEL_REPOSITORIO>
 cd clientes-monolitico-python
 ```
 
-### 2. Seleccionar la rama de desarrollo
+### 2. ⚠️ Seleccionar la rama de desarrollo (IMPORTANTE)
 ```bash
-git checkout mysql
+git checkout mysql  # ← Esta es la rama correcta
 ```
 
 ### 3. Levantar el entorno de desarrollo
